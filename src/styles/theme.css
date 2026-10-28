@@ -1,0 +1,87 @@
+/* Learning Hub theme — change the accent here to rebrand the whole site. */
+
+:root {
+	--sl-font: 'Plus Jakarta Sans Variable', system-ui, sans-serif;
+	--sl-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+	/* Dark mode */
+	--sl-color-accent-low: #1b2a52;
+	--sl-color-accent: #7c9cf0;
+	--sl-color-accent-high: #c9d6f7;
+
+	--kb-surface: #1d2430;
+	--kb-line: #333c4a;
+	--kb-muted: #a9b2bf;
+	--kb-ok-bg: #173826;
+	--kb-ok-fg: #8fe0b2;
+	--kb-warn-bg: #3f2611;
+	--kb-warn-fg: #ffc48f;
+	--kb-accent-solid: #4a74d9;
+	--kb-on-accent: #ffffff;
+	--kb-ink-band: #111822;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #e8eefb;
+	--sl-color-accent: #2b59c3;
+	--sl-color-accent-high: #1d3f8f;
+	--sl-color-white: #17202b;
+	--sl-color-bg-nav: #ffffff;
+	--sl-color-bg-sidebar: #ffffff;
+
+	--kb-surface: #ffffff;
+	--kb-line: #e3e1da;
+	--kb-muted: #56606e;
+	--kb-ok-bg: #e4f3ea;
+	--kb-ok-fg: #1e7148;
+	--kb-warn-bg: #fcefe3;
+	--kb-warn-fg: #8a420d;
+	--kb-accent-solid: #2b59c3;
+	--kb-on-accent: #ffffff;
+	--kb-ink-band: #17202b;
+}
+
+:root[data-theme='light'] body {
+	background: #f6f5f1;
+}
+
+/* Numbered steps read as cards, like the mockup */
+.sl-markdown-content .kb-steps ol {
+	list-style: none;
+	padding: 0;
+	counter-reset: kb-step;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+.sl-markdown-content .kb-steps ol > li {
+	counter-increment: kb-step;
+	position: relative;
+	margin: 0;
+	padding: 1rem 1.25rem 1rem 4rem;
+	background: var(--kb-surface);
+	border: 1px solid var(--kb-line);
+	border-radius: 12px;
+}
+.sl-markdown-content .kb-steps ol > li::before {
+	content: counter(kb-step);
+	position: absolute;
+	left: 1.1rem;
+	top: 1rem;
+	width: 2rem;
+	height: 2rem;
+	border-radius: 50%;
+	background: var(--kb-accent-solid);
+	color: var(--kb-on-accent);
+	font-weight: 700;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.sl-markdown-content .kb-steps ol > li > p {
+	margin: 0;
+}
+.sl-markdown-content .kb-steps ol > li strong:first-child {
+	display: block;
+	margin-bottom: 0.15rem;
+}

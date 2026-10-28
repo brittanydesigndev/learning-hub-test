@@ -1,0 +1,120 @@
+---
+/**
+ * Home page topic cards — every card is the same size.
+ * Leave `href` off a topic to show it as "Coming soon".
+ *
+ * Usage:
+ *   <TopicCards topics={[
+ *     { title: 'Renewals', description: '...', href: 'renewals/...' },
+ *     { title: 'Resident requests', description: '...' },   // coming soon
+ *   ]} />
+ */
+interface Topic {
+	title: string;
+	description: string;
+	href?: string;
+}
+interface Props {
+	topics: Topic[];
+}
+const { topics } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<ul class="kb-topics not-content">
+	{
+		topics.map((t) =>
+			t.href ? (
+				<li>
+					<a class="kb-topic" href={base + t.href.replace(/^\//, '')}>
+						<span class="kb-topic-title">{t.title}</span>
+						<span class="kb-topic-desc">{t.description}</span>
+						<svg class="kb-topic-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
+					</a>
+				</li>
+			) : (
+				<li>
+					<div class="kb-topic kb-topic--soon">
+						<span class="kb-topic-title">{t.title}</span>
+						<span class="kb-topic-desc">{t.description}</span>
+						<span class="kb-topic-soon">Coming soon</span>
+					</div>
+				</li>
+			)
+		)
+	}
+</ul>
+
+<style>
+	.kb-topics {
+		list-style: none;
+		margin: 1rem 0 0;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+		grid-auto-rows: 1fr;
+		gap: 1rem;
+	}
+	.kb-topics li {
+		margin: 0;
+	}
+	.kb-topic {
+		position: relative;
+		box-sizing: border-box;
+		height: 100%;
+		min-height: 7.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		padding: 1.25rem 3rem 1.25rem 1.25rem;
+		border: 1px solid var(--kb-line);
+		border-radius: 14px;
+		background: var(--kb-surface);
+		color: var(--sl-color-white);
+		text-decoration: none;
+	}
+	a.kb-topic:hover {
+		border-color: var(--sl-color-accent);
+	}
+	a.kb-topic:hover .kb-topic-arrow {
+		transform: translateX(3px);
+		color: var(--sl-color-accent);
+	}
+	.kb-topic-title {
+		font-size: 1.15rem;
+		font-weight: 700;
+	}
+	.kb-topic-desc {
+		color: var(--kb-muted);
+		font-size: 0.95rem;
+		line-height: 1.5;
+	}
+	.kb-topic-arrow {
+		position: absolute;
+		top: 1.35rem;
+		right: 1.25rem;
+		color: var(--kb-muted);
+		transition: transform 0.15s ease;
+	}
+	.kb-topic--soon {
+		background: transparent;
+		border-style: dashed;
+	}
+	.kb-topic-soon {
+		position: absolute;
+		top: 1.25rem;
+		right: 1.25rem;
+		height: 1.5rem;
+		display: inline-flex;
+		align-items: center;
+		padding: 0 0.6rem;
+		border-radius: 999px;
+		background: var(--kb-line);
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--sl-color-white);
+	}
+	.kb-topic--soon {
+		padding-right: 7.5rem;
+	}
+</style>

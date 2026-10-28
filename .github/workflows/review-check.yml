@@ -1,0 +1,22 @@
+# Every Monday, lists articles that are past (or within 30 days of)
+# their next_review date. Open the run in the Actions tab to see the list.
+name: Review check
+
+on:
+  schedule:
+    - cron: '17 12 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Find articles due for review
+        run: node scripts/check-reviews.mjs >> "$GITHUB_STEP_SUMMARY"

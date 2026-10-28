@@ -1,0 +1,111 @@
+---
+/**
+ * A "Try it" card that links to an interactive simulation
+ * (Articulate Storyline/Rise web export, Arcade, Storylane, etc.).
+ *
+ * Usage in an .mdx article:
+ *   <TryIt
+ *     title="Practice a renewal in a safe copy of [System]"
+ *     description="Click through the real screens without touching live data."
+ *     href="https://..."
+ *   />
+ *
+ * Put exported Storyline/Rise files in /public/simulations/<name>/ and use
+ * href="simulations/<name>/story.html" (no leading slash).
+ */
+interface Props {
+	title: string;
+	description?: string;
+	href?: string;
+	label?: string;
+	id?: string;
+}
+const { title, description, href, label = 'Try it', id = 'try-it' } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const resolved = href && !/^(https?:)?\/\//.test(href) && !href.startsWith('#') ? base + href.replace(/^\//, '') : href;
+---
+
+<section class="kb-tryit not-content" id={id}>
+	<div class="kb-tryit-thumb" aria-hidden="true">
+		<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M10 8.5l4 2.5-4 2.5z" /><path d="M8 21h8" /></svg>
+	</div>
+	<div class="kb-tryit-text">
+		<p class="kb-tryit-eyebrow">Interactive simulation</p>
+		<h3>{title}</h3>
+		{description && <p class="kb-tryit-desc">{description}</p>}
+	</div>
+	{
+		resolved ? (
+			<a class="kb-tryit-btn" href={resolved}>
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10-6.5z" /></svg>
+				{label}
+			</a>
+		) : (
+			<span class="kb-tryit-soon">Coming soon</span>
+		)
+	}
+</section>
+
+<style>
+	.kb-tryit {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 1.25rem;
+		margin-top: 1.75rem;
+		padding: 1.5rem;
+		border-radius: 16px;
+		background: var(--kb-ink-band);
+		color: #ffffff;
+	}
+	.kb-tryit-thumb {
+		flex: none;
+		width: 8rem;
+		height: 5.5rem;
+		border-radius: 10px;
+		border: 1px dashed #6b7686;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #b9c3d3;
+	}
+	.kb-tryit-text {
+		flex: 1 1 16rem;
+		min-width: 0;
+	}
+	.kb-tryit-eyebrow {
+		margin: 0;
+		font-family: var(--sl-font-mono);
+		font-size: 0.75rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: #b9c3d3;
+	}
+	.kb-tryit h3 {
+		margin: 0.2rem 0;
+		font-size: 1.2rem;
+		color: #ffffff;
+	}
+	.kb-tryit-desc {
+		margin: 0;
+		color: #d5dce6;
+		font-size: 0.95rem;
+	}
+	.kb-tryit-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-height: 3rem;
+		padding: 0 1.4rem;
+		border-radius: 10px;
+		background: #ffffff;
+		color: #17202b;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.kb-tryit-soon {
+		color: #b9c3d3;
+		font-size: 0.9rem;
+		font-weight: 600;
+	}
+</style>

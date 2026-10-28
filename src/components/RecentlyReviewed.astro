@@ -1,0 +1,94 @@
+---
+/** Lists the most recently reviewed articles, newest first. */
+import { getCollection } from 'astro:content';
+
+interface Props {
+	limit?: number;
+}
+const { limit = 5 } = Astro.props;
+const base = import.meta.env.BASE_URL;
+
+const articles = (await getCollection('docs', (e) => Boolean(e.data.last_reviewed)))
+	.sort((a, b) => b.data.last_reviewed!.getTime() - a.data.last_reviewed!.getTime())
+	.slice(0, limit);
+
+const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+const now = Date.now();
+---
+
+<ul class="kb-recent not-content">
+	{
+		articles.map((a) => {
+			const due = a.data.next_review ? a.data.next_review.getTime() < now : false;
+			return (
+				<li>
+					<div>
+						<a href={`${base}${a.id}/`}>{a.data.title}</a>
+						<span>{[a.data.topic, a.data.audience?.join(', '), a.data.type].filter(Boolean).join(' · ')}</span>
+					</div>
+					<span class:list={['kb-chip', due ? 'kb-chip--warn' : 'kb-chip--ok']}>
+						{due ? 'Review due' : `Reviewed ${fmt(a.data.last_reviewed!)}`}
+					</span>
+				</li>
+			);
+		})
+	}
+</ul>
+
+<style>
+	.kb-recent {
+		list-style: none;
+		margin: 1rem 0 0;
+		padding: 0.25rem 1.25rem;
+		background: var(--kb-surface);
+		border: 1px solid var(--kb-line);
+		border-radius: 14px;
+	}
+	.kb-recent li {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.5rem 1rem;
+		padding: 1rem 0;
+		margin: 0;
+		border-top: 1px solid var(--kb-line);
+	}
+	.kb-recent li:first-child {
+		border-top: 0;
+	}
+	.kb-recent li > div {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+	.kb-recent a {
+		font-weight: 600;
+		color: var(--sl-color-white);
+		text-decoration: none;
+	}
+	.kb-recent a:hover {
+		color: var(--sl-color-accent);
+	}
+	.kb-recent li > div > span {
+		color: var(--kb-muted);
+		font-size: 0.875rem;
+	}
+	.kb-chip {
+		height: 1.75rem;
+		display: inline-flex;
+		align-items: center;
+		padding: 0 0.7rem;
+		border-radius: 999px;
+		font-size: 0.8rem;
+		font-weight: 600;
+	}
+	.kb-chip--ok {
+		background: var(--kb-ok-bg);
+		color: var(--kb-ok-fg);
+	}
+	.kb-chip--warn {
+		background: var(--kb-warn-bg);
+		color: var(--kb-warn-fg);
+	}
+</style>

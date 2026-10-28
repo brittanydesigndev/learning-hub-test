@@ -1,0 +1,39 @@
+---
+title: Learning Hub
+description: Steps, policies and job aids from Learning & Development.
+template: splash
+tableOfContents: false
+lastUpdated: false
+---
+
+import HomeSearch from '../../components/HomeSearch.astro';
+import RecentlyReviewed from '../../components/RecentlyReviewed.astro';
+import TopicCards from '../../components/TopicCards.astro';
+
+<HomeSearch
+	popular={[
+		{ label: 'Processing a lease renewal', href: 'renewals/processing-a-lease-renewal/' },
+		{ label: 'Sending a renewal offer', href: 'renewals/sending-a-renewal-offer/' },
+		{ label: 'Move-in checklist', href: 'move-in/move-in-checklist/' },
+		{ label: 'Screening decisions', href: 'screening/making-a-screening-decision/' },
+	]}
+/>
+
+## Browse by topic
+
+<TopicCards
+	topics={[
+		{ title: 'Renewals', description: 'Renewal offers, signing, month-to-month and FAQs.', href: 'renewals/sending-a-renewal-offer/' },
+		{ title: 'Move-in & move-out', description: 'Checklists, inspections, keys and deposits.', href: 'move-in/move-in-checklist/' },
+		{ title: 'Screening', description: 'Application review, decisions and conditional approvals.', href: 'screening/reviewing-an-application/' },
+		{ title: 'Resident requests', description: 'Routing, handoffs between teams and response standards.' },
+	]}
+/>
+
+## Recently reviewed
+
+<RecentlyReviewed limit={5} />
+
+## Can’t find something?
+
+Use the search above. If the article you need doesn't exist yet, or you spot something outdated, let the Learning & Development team know.

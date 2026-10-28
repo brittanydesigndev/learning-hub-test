@@ -1,0 +1,384 @@
+---
+/**
+ * Wrap an article's numbered steps in <Walkthrough> to get:
+ *   - the steps styled as numbered cards (reading view), and
+ *   - a "Walk me through it" button that turns the same steps into a
+ *     one-step-at-a-time guided view.
+ *
+ * Start each step with a **bold title**. Everything after it in that step
+ * (text, images, notes) shows as the step's body in the guided view.
+ *
+ * Usage in an .mdx article:
+ *   <Walkthrough simulation="#try-it" doneMessage="You've processed the renewal.">
+ *   1. **Open the record.** In [System], go to ...
+ *   2. **Confirm the term.** Match it to ...
+ *   </Walkthrough>
+ */
+interface Props {
+	/** Optional link to a simulation, e.g. "#try-it" for a <TryIt> card on the page. */
+	simulation?: string;
+	/** Heading on the finish screen. */
+	doneTitle?: string;
+	/** Message on the finish screen. */
+	doneMessage?: string;
+}
+const {
+	simulation,
+	doneTitle = 'All done',
+	doneMessage = 'You’ve finished every step. The written steps stay on this page whenever you need a refresher.',
+} = Astro.props;
+---
+
+<div class="kb-walk" data-kb-walk>
+	<div class="kb-guide-bar" data-pagefind-ignore="all">
+		<span class="kb-guide-label">Prefer to be guided?</span>
+		<button type="button" class="kb-btn kb-btn--primary" data-walk-start>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10" /><path d="M4 12h16" /><path d="M4 18h7" /><path d="M17 4l3 2-3 2" /></svg>
+			Walk me through it
+		</button>
+		{
+			simulation && (
+				<a class="kb-btn kb-btn--secondary" href={simulation}>
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M10 8.5l5 3.5-5 3.5z" /></svg>
+					Try the simulation
+				</a>
+			)
+		}
+	</div>
+
+	<div class="kb-steps" data-walk-read>
+		<slot />
+	</div>
+
+	<section class="kb-stepper not-content" data-walk-guide hidden aria-label="Guided walkthrough" data-pagefind-ignore="all">
+		<div class="kb-stepper-top">
+			<p class="kb-stepper-label" data-walk-label aria-live="polite"></p>
+			<button type="button" class="kb-btn kb-btn--secondary kb-btn--small" data-walk-exit>Exit walkthrough</button>
+		</div>
+		<div class="kb-progress"><div class="kb-progress-bar" data-walk-progress></div></div>
+		<div class="kb-stepper-body">
+			<ol class="kb-stepper-nav" data-walk-nav></ol>
+			<div class="kb-stepper-main">
+				<div data-walk-step>
+					<h3 class="kb-step-title" data-walk-title tabindex="-1"></h3>
+					<div class="kb-step-content sl-markdown-content" data-walk-content></div>
+					<div class="kb-stepper-actions">
+						<button type="button" class="kb-btn kb-btn--secondary" data-walk-back>Back</button>
+						<button type="button" class="kb-btn kb-btn--primary" data-walk-next>Next step</button>
+					</div>
+				</div>
+				<div data-walk-done hidden>
+					<span class="kb-done-icon" aria-hidden="true">
+						<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+					</span>
+					<h3 class="kb-step-title" tabindex="-1" data-walk-done-title>{doneTitle}</h3>
+					<p>{doneMessage}</p>
+					<div class="kb-stepper-actions kb-stepper-actions--start">
+						<button type="button" class="kb-btn kb-btn--primary" data-walk-exit>Back to article</button>
+						<button type="button" class="kb-btn kb-btn--secondary" data-walk-restart>Start over</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-kb-walk]').forEach((root) => {
+		const read = root.querySelector<HTMLElement>('[data-walk-read]')!;
+		const guide = root.querySelector<HTMLElement>('[data-walk-guide]')!;
+		const items = Array.from(read.querySelectorAll<HTMLLIElement>(':scope ol > li'));
+		if (items.length === 0) return;
+
+		// Split each list item into a title (its first bold text) and the rest.
+		const steps = items.map((li, i) => {
+			const clone = li.cloneNode(true) as HTMLLIElement;
+			const strong = clone.querySelector('strong');
+			const title = strong?.textContent?.trim().replace(/\.$/, '') || `Step ${i + 1}`;
+			strong?.remove();
+			return { title, html: clone.innerHTML.trim() };
+		});
+
+		const $ = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
+		const label = $('[data-walk-label]');
+		const progress = $('[data-walk-progress]');
+		const nav = $('[data-walk-nav]');
+		const title = $('[data-walk-title]');
+		const content = $('[data-walk-content]');
+		const back = $<HTMLButtonElement>('[data-walk-back]');
+		const next = $<HTMLButtonElement>('[data-walk-next]');
+		const stepView = $('[data-walk-step]');
+		const doneView = $('[data-walk-done]');
+
+		let current = 0;
+		let done = false;
+
+		const navButtons = steps.map((s, i) => {
+			const li = document.createElement('li');
+			const btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'kb-nav-btn';
+			btn.innerHTML = `<span class="kb-nav-dot"></span><span></span>`;
+			(btn.lastElementChild as HTMLElement).textContent = s.title;
+			btn.addEventListener('click', () => go(i));
+			li.appendChild(btn);
+			nav.appendChild(li);
+			return btn;
+		});
+
+		function render(focus = true) {
+			navButtons.forEach((btn, i) => {
+				const active = !done && i === current;
+				const complete = done || i < current;
+				btn.classList.toggle('is-active', active);
+				btn.classList.toggle('is-complete', complete);
+				btn.setAttribute('aria-current', active ? 'step' : 'false');
+				(btn.firstElementChild as HTMLElement).textContent = complete ? '✓' : String(i + 1);
+			});
+			const pct = done ? 100 : Math.round(((current + 1) / steps.length) * 100);
+			progress.style.width = pct + '%';
+			label.textContent = done ? 'Walkthrough complete' : `Walkthrough · Step ${current + 1} of ${steps.length}`;
+			stepView.hidden = done;
+			doneView.hidden = !done;
+			if (!done) {
+				title.textContent = steps[current].title;
+				content.innerHTML = steps[current].html;
+				back.disabled = current === 0;
+				next.textContent = current === steps.length - 1 ? 'Finish' : 'Next step';
+			}
+			if (focus) {
+				(done ? root.querySelector<HTMLElement>('[data-walk-done-title]')! : title).focus();
+			}
+		}
+
+		function go(i: number) {
+			current = i;
+			done = false;
+			render();
+		}
+
+		function start() {
+			read.hidden = true;
+			guide.hidden = false;
+			root.querySelector<HTMLElement>('.kb-guide-bar')!.hidden = true;
+			go(0);
+			guide.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+
+		function exit() {
+			read.hidden = false;
+			guide.hidden = true;
+			root.querySelector<HTMLElement>('.kb-guide-bar')!.hidden = false;
+			root.querySelector<HTMLElement>('[data-walk-start]')!.focus();
+		}
+
+		root.querySelector('[data-walk-start]')!.addEventListener('click', start);
+		root.querySelectorAll('[data-walk-exit]').forEach((b) => b.addEventListener('click', exit));
+		root.querySelector('[data-walk-restart]')!.addEventListener('click', () => go(0));
+		back.addEventListener('click', () => current > 0 && go(current - 1));
+		next.addEventListener('click', () => {
+			if (current === steps.length - 1) {
+				done = true;
+				render();
+			} else go(current + 1);
+		});
+	});
+</script>
+
+<style>
+	.kb-walk {
+		margin-top: 1rem;
+	}
+	.kb-guide-bar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.9rem 1.1rem;
+		margin-bottom: 1rem;
+		background: var(--kb-surface);
+		border: 1px solid var(--kb-line);
+		border-radius: 14px;
+	}
+	.kb-guide-bar[hidden] {
+		display: none;
+	}
+	.kb-guide-label {
+		flex: 1 1 12rem;
+		font-weight: 600;
+		color: var(--sl-color-white);
+	}
+	.kb-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-height: 2.75rem;
+		margin: 0;
+		padding: 0 1.1rem;
+		border-radius: 10px;
+		font: inherit;
+		font-size: 0.95rem;
+		font-weight: 600;
+		text-decoration: none;
+		cursor: pointer;
+	}
+	.kb-btn--primary {
+		border: 0;
+		background: var(--kb-accent-solid);
+		color: var(--kb-on-accent);
+	}
+	.kb-btn--secondary {
+		border: 1px solid var(--kb-line);
+		background: var(--kb-surface);
+		color: var(--sl-color-white);
+	}
+	.kb-btn--small {
+		font-size: 0.85rem;
+	}
+	.kb-btn:disabled {
+		opacity: 0.45;
+		cursor: default;
+	}
+	.kb-stepper {
+		background: var(--kb-surface);
+		border: 2px solid var(--kb-accent-solid);
+		border-radius: 16px;
+		overflow: hidden;
+	}
+	.kb-stepper[hidden] {
+		display: none;
+	}
+	.kb-stepper-top {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.6rem 1.25rem;
+		border-bottom: 1px solid var(--kb-line);
+	}
+	.kb-stepper-label {
+		margin: 0;
+		font-family: var(--sl-font-mono);
+		font-size: 0.75rem;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--kb-muted);
+	}
+	.kb-progress {
+		height: 6px;
+		background: var(--sl-color-accent-low);
+	}
+	.kb-progress-bar {
+		height: 6px;
+		width: 0;
+		background: var(--kb-accent-solid);
+		transition: width 0.25s ease;
+	}
+	.kb-stepper-body {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	.kb-stepper-nav {
+		flex: 1 1 13rem;
+		max-width: 16rem;
+		list-style: none;
+		margin: 0;
+		padding: 1rem 0.75rem;
+		border-right: 1px solid var(--kb-line);
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+	.kb-stepper-nav :global(li) {
+		margin: 0;
+	}
+	.kb-stepper-nav :global(.kb-nav-btn) {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		min-height: 2.75rem;
+		padding: 0.4rem 0.6rem;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: var(--sl-color-white);
+		font: inherit;
+		font-size: 0.875rem;
+		font-weight: 500;
+		text-align: left;
+		cursor: pointer;
+	}
+	.kb-stepper-nav :global(.kb-nav-btn.is-active) {
+		background: var(--sl-color-accent-low);
+		font-weight: 700;
+	}
+	.kb-stepper-nav :global(.kb-nav-dot) {
+		flex: none;
+		width: 1.5rem;
+		height: 1.5rem;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.75rem;
+		font-weight: 700;
+		background: var(--kb-line);
+		color: var(--sl-color-white);
+	}
+	.kb-stepper-nav :global(.is-active .kb-nav-dot) {
+		background: var(--kb-accent-solid);
+		color: var(--kb-on-accent);
+	}
+	.kb-stepper-nav :global(.is-complete .kb-nav-dot) {
+		background: var(--kb-ok-fg);
+		color: var(--kb-surface);
+	}
+	.kb-stepper-main {
+		flex: 999 1 20rem;
+		min-width: 0;
+		padding: 1.75rem;
+	}
+	.kb-stepper-main [hidden] {
+		display: none;
+	}
+	.kb-step-title {
+		margin: 0 0 0.75rem;
+		font-size: 1.5rem;
+		line-height: 1.3;
+		color: var(--sl-color-white);
+		outline: none;
+	}
+	.kb-step-content {
+		font-size: 1.05rem;
+	}
+	.kb-step-content :global(a) {
+		color: var(--sl-color-text-accent);
+	}
+	.kb-step-content :global(img) {
+		border-radius: 10px;
+		border: 1px solid var(--kb-line);
+	}
+	.kb-stepper-actions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-top: 1.5rem;
+	}
+	.kb-stepper-actions--start {
+		justify-content: flex-start;
+	}
+	.kb-done-icon {
+		width: 3.5rem;
+		height: 3.5rem;
+		border-radius: 50%;
+		background: var(--kb-ok-bg);
+		color: var(--kb-ok-fg);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 1rem;
+	}
+</style>

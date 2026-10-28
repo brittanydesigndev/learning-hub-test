@@ -1,0 +1,115 @@
+---
+/**
+ * The big search band on the home page. It opens Starlight's built-in
+ * search, so results come from every published article.
+ */
+interface Props {
+	popular?: { label: string; href: string }[];
+}
+const { popular = [] } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<section class="kb-hero not-content">
+	<p class="kb-hero-eyebrow">Learning &amp; Development knowledgebase</p>
+	<p class="kb-hero-title">What do you need to get done today?</p>
+	<button type="button" class="kb-hero-search" data-kb-hero-search>
+		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
+		<span>Search steps, policies and job aids — try “renewal”</span>
+		<kbd>/</kbd>
+	</button>
+	{
+		popular.length > 0 && (
+			<div class="kb-hero-popular">
+				<span>Popular:</span>
+				{popular.map((p) => (
+					<a href={base + p.href.replace(/^\//, '')}>{p.label}</a>
+				))}
+			</div>
+		)
+	}
+</section>
+
+<script>
+	document.querySelector('[data-kb-hero-search]')?.addEventListener('click', (e) => {
+		// Stop this click reaching the search dialog's "click outside to close" handler.
+		e.stopPropagation();
+		document.querySelector<HTMLButtonElement>('site-search button[data-open-modal]')?.click();
+	});
+</script>
+
+<style>
+	.kb-hero {
+		background: var(--kb-ink-band);
+		color: #ffffff;
+		border-radius: 20px;
+		padding: clamp(1.75rem, 5vw, 3.5rem);
+		margin-bottom: 2.5rem;
+	}
+	.kb-hero-eyebrow {
+		margin: 0 0 0.75rem;
+		font-family: var(--sl-font-mono);
+		font-size: 0.8rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: #b9c3d3;
+	}
+	.kb-hero-title {
+		margin: 0 0 1.75rem;
+		font-size: clamp(1.9rem, 4.5vw, 2.75rem);
+		line-height: 1.15;
+		font-weight: 700;
+		color: #ffffff;
+		max-width: 40rem;
+	}
+	.kb-hero-search {
+		width: 100%;
+		max-width: 48rem;
+		min-height: 3.75rem;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0 1.1rem;
+		border: 0;
+		border-radius: 12px;
+		background: #ffffff;
+		color: #56606e;
+		font: inherit;
+		font-size: 1.05rem;
+		text-align: left;
+		cursor: pointer;
+	}
+	.kb-hero-search span {
+		flex: 1;
+	}
+	.kb-hero-search kbd {
+		font-family: var(--sl-font-mono);
+		font-size: 0.75rem;
+		border: 1px solid #e3e1da;
+		border-radius: 6px;
+		padding: 0.1rem 0.5rem;
+	}
+	.kb-hero-popular {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.6rem;
+		margin-top: 1.25rem;
+	}
+	.kb-hero-popular span {
+		color: #b9c3d3;
+		font-size: 0.9rem;
+	}
+	.kb-hero-popular a {
+		color: #ffffff;
+		text-decoration: none;
+		font-size: 0.9rem;
+		font-weight: 500;
+		border: 1px solid #4a5566;
+		border-radius: 999px;
+		padding: 0.45rem 0.9rem;
+	}
+	.kb-hero-popular a:hover {
+		border-color: #ffffff;
+	}
+</style>
